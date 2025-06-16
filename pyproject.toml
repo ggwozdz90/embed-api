@@ -1,6 +1,6 @@
 [project]
 name = "embed-api"
-version = "0.1.0"
+version = "0.2.0"
 description = "A FastAPI project for generating text embeddings using machine learning models."
 authors = [{ name = "Grzegorz Gwóźdź" }]
 requires-python = ">=3.12,<3.13"
