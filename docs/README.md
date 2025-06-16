@@ -1,113 +1,200 @@
 # Embed API
 
-A FastAPI project for generating text embeddings using machine learning models.
+REST API for generating text embeddings using the BGE-M3 model.
 
 ## Features
 
-- **RESTful API**: Exposes RESTful API endpoints
-- **Configuration**: The repository includes a `.env` file that defines configurable environment variables.
+- **Dense embeddings**: 1024-dimensional vectors for semantic search
+- **Sparse embeddings**: Sparse vectors for hybrid search  
+- **ColBERT embeddings**: Multi-vector representation for precise matching
+- **GPU support**: NVIDIA CUDA support
+- **Automatic memory management**: Model with idle timeout
+- **Docker ready**: Ready-to-use Docker images with GPU support
 
-## Available Distributions
+## Installation and Setup
 
 ### Docker Images
 
-Available versions:
+The API is available in two variants:
 
-- `latest`: Provides the latest version of the application
+- **CPU-only** (`ggwozdz/embed-api:cpu-latest`): Smaller image with CPU-only PyTorch
+- **GPU-enabled** (`ggwozdz/embed-api:gpu-latest`): Includes CUDA support for GPU acceleration
+- **Default** (`ggwozdz/embed-api:latest`): Points to the GPU-enabled version
 
-### Windows Executable
+### Docker (recommended)
 
-Download the executable from [GitHub Releases](https://github.com/ggwozdz90/embed-api/releases).
+```bash
+# CPU version
+docker run -d -p 8000:8000 \
+  -e DEVICE=cpu \
+  ggwozdz/embed-api:cpu-latest
 
-## Quick Start
+# GPU version  
+docker run -d -p 8000:8000 \
+  -e DEVICE=cuda \
+  --gpus all \
+  ggwozdz/embed-api:gpu-latest
 
-### Prerequisites
+# Alternative: use unversioned tags (GPU version)
+docker run -d -p 8000:8000 \
+  -e DEVICE=cuda \
+  --gpus all \
+  ggwozdz/embed-api:latest
+```
 
-Choose your preferred distribution:
+### Docker Compose
 
-- **Windows Executable**:
-  - Windows 10 or later
+```yaml
+services:
+  # CPU version
+  api-cpu:
+    image: ggwozdz/embed-api:cpu-latest
+    environment:
+      - DEVICE=cpu
+      - LOG_LEVEL=INFO
+    ports:
+      - "8000:8000"
+  
+  # GPU version
+  api-gpu:
+    image: ggwozdz/embed-api:gpu-latest
+    environment:
+      - DEVICE=cuda
+      - LOG_LEVEL=INFO
+    ports:
+      - "8001:8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+```
 
-- **Docker Images**:
-  - [Docker](https://www.docker.com/get-started/)
+### Poetry (development)
 
-### Using Docker
+```bash
+git clone <repository>
+cd embed-api
+poetry install
+poetry run python src/main.py
+```
 
-- Run the following command to start the API server:
+## API Endpoints
 
-    ```bash
-    docker run -d -p 8000:8000 \
-      -e LOG_LEVEL=INFO \
-      -e FASTAPI_HOST=0.0.0.0 \
-      -e FASTAPI_PORT=8000 \
-      ggwozdz/embed-api:latest
-    ```
+Full API documentation available at: `http://localhost:8000/docs`
 
-### Using Docker Compose
+### 1. Health Check
 
-- Create a `docker-compose.yml` file with the following content and run `docker-compose up`:
+```http
+GET /healthcheck
+```
 
-    ```yaml
-    services:
-      api:
-        image: ggwozdz/embed-api:latest
-        environment:
-          - LOG_LEVEL=INFO
-          - FASTAPI_HOST=0.0.0.0
-          - FASTAPI_PORT=8000
-        ports:
-          - "8000:8000"
-    ```
+Checks the application status.
 
-### Using Windows Executable
+### 2. Generate Embeddings
 
-1. Download from GitHub Releases
-2. Run `embed-api.exe`
+```http
+POST /embeddings
+```
 
-## API Features
+Generates embeddings for the provided texts.
 
-### Health Check
+**Request:**
 
-- Request:
+```json
+{
+  "texts": ["Hello world", "Another text"],
+  "include_dense": true,
+  "include_sparse": true,
+  "include_colbert": true
+}
+```
 
-    ```bash
-    curl -X GET "http://localhost:8000/healthcheck"
-    ```
+**Response:**
 
-- Response:
-
-    ```json
+```json
+{
+  "embeddings": [
     {
-      "status": "OK"
+      "text": "Hello world",
+      "dense": [0.1, 0.2, 0.3, -0.1, 0.5, 0.8, -0.2, 0.4],
+      "sparse": {
+        "indices": [1, 5, 10, 15, 23, 45, 67],
+        "values": [0.8, 0.6, 0.4, 0.3, 0.2, 0.1, 0.05]
+      },
+      "colbert": [
+        [0.1, 0.2, 0.3, 0.4],
+        [0.5, 0.6, 0.7, 0.8],
+        [0.9, 0.1, 0.2, 0.3]
+      ]
+    },
+    {
+      "text": "Another text",
+      "dense": [0.4, 0.5, 0.6, -0.3, 0.7, 0.2, -0.1, 0.9],
+      "sparse": {
+        "indices": [2, 7, 12, 18, 34, 56],
+        "values": [0.9, 0.5, 0.2, 0.15, 0.08, 0.03]
+      },
+      "colbert": [
+        [0.2, 0.3, 0.4, 0.5],
+        [0.6, 0.7, 0.8, 0.9],
+        [0.1, 0.2, 0.3, 0.4],
+        [0.5, 0.6, 0.7, 0.8]
+      ]
     }
-    ```
+  ]
+}
+```
+
+### 3. Model Status
+
+```http
+GET /model/status
+```
+
+Checks if the model is loaded.
+
+**Response:**
+
+```json
+{
+  "is_loaded": true,
+  "model_name": "BAAI/bge-m3",
+  "device": "cpu"
+}
+```
+
+### 4. Model Management
+
+```http
+POST /model/load    # Load model
+POST /model/unload  # Unload model
+```
 
 ## Configuration
 
-The application uses a `.env` file or Docker Compose to define configurable environment variables. Below are the available configuration options:
+The application is configured via environment variables:
 
-- `LOG_LEVEL`: The logging level for the application. Supported levels are `NOTSET`, `DEBUG`, `INFO`, `WARN`, `WARNING`, `ERROR`, `FATAL`, and `CRITICAL`. The same log level will be applied to `uvicorn` and `uvicorn.access` loggers. Default is `INFO`.
-- `FASTAPI_HOST`: Host for the FastAPI server. Default is `127.0.0.1`.
-- `FASTAPI_PORT`: Port for the FastAPI server. Default is `8000`.
+| Variable | Description | Default value |
+|----------|-------------|---------------|
+| `DEVICE` | Device: `cpu` or `cuda` | `cpu` |
+| `LOG_LEVEL` | Logging level | `INFO` |
+| `FASTAPI_HOST` | Server host | `127.0.0.1` |
+| `FASTAPI_PORT` | Server port | `8000` |
+| `MODEL_IDLE_TIMEOUT` | Model timeout (seconds) | `60` |
 
-## Developer Guide
+## BGE-M3 Model
 
-Developer guide is available in [docs/DEVELOPER.md](DEVELOPER.md).
+BGE-M3 is a multilingual embedding model offering:
 
-## Table of Contents
+- **Dense embeddings**: 1024-dimensional vectors for semantic search
+- **Sparse embeddings**: Sparse vectors for hybrid search
+- **ColBERT embeddings**: Multi-vector representation for precise matching
+- **Multilingual support**: Support for multiple languages
+- **Long texts**: Up to 8192 tokens
 
-- [Embed API](#embed-api)
-  - [Features](#features)
-  - [Available Distributions](#available-distributions)
-    - [Docker Images](#docker-images)
-    - [Windows Executable](#windows-executable)
-  - [Quick Start](#quick-start)
-    - [Prerequisites](#prerequisites)
-    - [Using Docker](#using-docker)
-    - [Using Docker Compose](#using-docker-compose)
-    - [Using Windows Executable](#using-windows-executable)
-  - [API Features](#api-features)
-    - [Health Check](#health-check)
-  - [Configuration](#configuration)
-  - [Developer Guide](#developer-guide)
-  - [Table of Contents](#table-of-contents)
+## License
+
+MIT License

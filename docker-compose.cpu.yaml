@@ -4,20 +4,15 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - POETRY_INSTALL_ARGS=--extras cuda128
+        - POETRY_INSTALL_ARGS=--extras cpu
     environment:
       - LOG_LEVEL=INFO
-      - DEVICE=cuda
+      - DEVICE=cpu
       - FASTAPI_HOST=0.0.0.0
       - FASTAPI_PORT=8000
       - MODEL_IDLE_TIMEOUT=60
       - EMBEDDING_MODEL_NAME=BAAI/bge-m3
     ports:
       - "8007:8000"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [ gpu ]
+    volumes:
+      - ./volume/downloaded_embedding_models:/app/downloaded_embedding_models

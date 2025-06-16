@@ -6,9 +6,25 @@ on:
       - "v*.*.*"
   workflow_dispatch:
 
-jobs:
+jobs:  
   deploy:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant: [cpu, gpu]
+        include:
+          - variant: cpu
+            build-args: "POETRY_INSTALL_ARGS=--extras cpu"
+            tags: |
+              ggwozdz/embed-api:cpu-${{ github.ref_name }}
+              ggwozdz/embed-api:cpu-latest
+          - variant: gpu
+            build-args: "POETRY_INSTALL_ARGS=--extras cuda128"
+            tags: |
+              ggwozdz/embed-api:gpu-${{ github.ref_name }}
+              ggwozdz/embed-api:gpu-latest
+              ggwozdz/embed-api:${{ github.ref_name }}
+              ggwozdz/embed-api:latest
 
     steps:
     - name: Checkout code
@@ -20,20 +36,18 @@ jobs:
         username: ${{ vars.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and push
+    - name: Build and push ${{ matrix.variant }}
       uses: docker/build-push-action@v6.10.0
       with:
         push: true
         build-args: |
-          POETRY_INSTALL_ARGS=
+          ${{ matrix.build-args }}
         labels: |
-          org.opencontainers.image.title="Embed API"
-          org.opencontainers.image.description="A FastAPI project for generating text embeddings using machine learning models."
+          org.opencontainers.image.title="Embed API (${{ matrix.variant }})"
+          org.opencontainers.image.description="A FastAPI project for generating text embeddings using machine learning models. ${{ matrix.variant == 'gpu' && 'GPU-enabled' || 'CPU-only' }} variant."
           org.opencontainers.image.source="https://github.com/ggwozdz90/embed-api"
           org.opencontainers.image.documentation="https://github.com/ggwozdz90/embed-api/blob/main/docs/README.md"
-        tags: | 
-          ggwozdz/embed-api:${{ github.ref_name }}
-          ggwozdz/embed-api:latest
+        tags: ${{ matrix.tags }}
 
   deploy-dockerhub-overview:
     runs-on: ubuntu-latest
