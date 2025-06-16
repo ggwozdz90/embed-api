@@ -2,6 +2,9 @@
 FROM python:3.12-slim-bookworm AS builder
 
 # ARG POETRY_INSTALL_ARGS is used to pass the 'extras' parameter to poetry install.
+# It can have the values 'cpu', 'cuda128'.
+# 'cpu' installs dependencies for CPU.
+# 'cuda128' installs dependencies for CUDA 12.8.
 ARG POETRY_INSTALL_ARGS=""
 
 # Setup Poetry
