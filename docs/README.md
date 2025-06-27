@@ -184,6 +184,15 @@ The application is configured via environment variables:
 | `FASTAPI_HOST` | Server host | `127.0.0.1` |
 | `FASTAPI_PORT` | Server port | `8000` |
 | `MODEL_IDLE_TIMEOUT` | Model timeout (seconds) | `60` |
+| `USE_FP16` | Use half precision (16-bit) floats | `false` |
+
+### Performance Optimization
+
+- **USE_FP16**: When set to `true`, enables half-precision (16-bit) floating point computation, which can:
+  - Reduce memory usage by approximately 50%
+  - Increase inference speed on compatible hardware (GPUs with Tensor Cores)
+  - May slightly reduce numerical precision
+  - Recommended for GPU deployment when memory is limited
 
 ## BGE-M3 Model
 

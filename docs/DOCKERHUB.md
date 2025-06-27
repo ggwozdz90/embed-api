@@ -166,6 +166,12 @@ The application uses environment variables for configuration. Below are the avai
 | `FASTAPI_HOST` | Server host | `127.0.0.1` |
 | `FASTAPI_PORT` | Server port | `8000` |
 | `MODEL_IDLE_TIMEOUT` | Model timeout (seconds) | `60` |
+| `USE_FP16` | Use half precision (16-bit) floats | `false` |
+
+### Performance Optimization
+
+- **USE_FP16**: Enables half-precision floating point computation for reduced memory usage and faster inference on compatible GPUs.
+| `USE_FP16` | Use half precision (16-bit) floats | `false` |
 
 ## BGE-M3 Model
 
