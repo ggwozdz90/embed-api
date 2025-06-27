@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from multiprocessing.sharedctypes import Synchronized
 from typing import Any, Dict, List
 
+import numpy as np
 from FlagEmbedding import BGEM3FlagModel
 
 from data.workers.base_worker import BaseWorker
@@ -16,6 +17,7 @@ class BgeM3EmbeddingConfig:
     device: str
     model_name: str
     log_level: str
+    use_fp16: bool
 
 
 @dataclass
@@ -58,6 +60,7 @@ class BgeM3EmbeddingWorker(
         model = BGEM3FlagModel(
             config.model_name,
             device=config.device,
+            use_fp16=config.use_fp16,
         )
 
         return model
@@ -95,19 +98,17 @@ class BgeM3EmbeddingWorker(
                     text_embedding: Dict[str, Any] = {"text": text}
 
                     if request.include_dense and "dense_vecs" in embeddings:
-                        text_embedding["dense"] = embeddings["dense_vecs"][i].tolist()
+                        text_embedding["dense"] = np.array(embeddings["dense_vecs"][i])
 
                     if request.include_sparse and "lexical_weights" in embeddings:
-                        indices = []
-                        values = []
-                        for key, value in embeddings["lexical_weights"][i].items():
-                            indices.append(int(key))
-                            values.append(float(value))
+                        sparse_data = embeddings["lexical_weights"][i]
+                        indices = [int(k) for k in sparse_data.keys()]
+                        values = np.array(list(sparse_data.values()))
 
                         text_embedding["sparse"] = {"indices": indices, "values": values}
 
                     if request.include_colbert and "colbert_vecs" in embeddings:
-                        text_embedding["colbert"] = embeddings["colbert_vecs"][i].tolist()
+                        text_embedding["colbert"] = np.array(embeddings["colbert_vecs"][i])
 
                     text_embeddings.append(text_embedding)
 

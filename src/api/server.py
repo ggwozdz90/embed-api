@@ -1,5 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
+from fastapi.responses import ORJSONResponse
 
 from api.handlers.global_exception_handler import GlobalExceptionHandler
 from api.middlewares.process_time_middleware import ProcessTimeMiddleware
@@ -18,7 +19,7 @@ class APIServer:
     ) -> None:
         self.config = config
         self.logger = logger
-        self.app = FastAPI()
+        self.app = FastAPI(default_response_class=ORJSONResponse)
         self.exception_handler = GlobalExceptionHandler(self.app, logger)
         self.app.add_middleware(ProcessTimeMiddleware, logger=logger)
         self.app.include_router(HealthCheckRouter().router, tags=["HealthCheck"])

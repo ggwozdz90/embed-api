@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends
+from fastapi.responses import ORJSONResponse
 
 from api.dtos.create_embeddings_dto import CreateEmbeddingsDto
 from api.dtos.create_embeddings_result_dto import CreateEmbeddingsResultDto
@@ -16,7 +17,7 @@ class EmbeddingRouter:
         self,
         create_embeddings_usecase: Annotated[CreateEmbeddingsUseCase, Depends()],
         create_embeddings_dto: CreateEmbeddingsDto = Body(...),
-    ) -> CreateEmbeddingsResultDto:
+    ) -> ORJSONResponse:
         result = await create_embeddings_usecase.execute(
             create_embeddings_dto.texts,
             create_embeddings_dto.include_dense,
@@ -24,4 +25,10 @@ class EmbeddingRouter:
             create_embeddings_dto.include_colbert,
         )
 
-        return CreateEmbeddingsResultDto(embeddings=result.embeddings)
+        response_dto = CreateEmbeddingsResultDto(
+            embeddings=result.embeddings,
+        )
+
+        content = response_dto.model_dump()
+
+        return ORJSONResponse(content=content)

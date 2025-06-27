@@ -1,6 +1,6 @@
 [project]
 name = "embed-api"
-version = "0.2.0"
+version = "0.3.0"
 description = "A FastAPI project for generating text embeddings using machine learning models."
 authors = [{ name = "Grzegorz Gwóźdź" }]
 requires-python = ">=3.12,<3.13"
@@ -10,6 +10,7 @@ dependencies = [
     "fastapi[all]>=0.115.6",
     "FlagEmbedding>=1.2.9",
     "peft>=0.15.2",
+    "orjson>=3.10.18",
 ]
 
 [project.urls]

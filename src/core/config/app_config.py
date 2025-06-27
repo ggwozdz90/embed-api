@@ -15,6 +15,7 @@ class AppConfig:
     fastapi_port: Optional[int]
     embedding_model_name: Optional[str]
     model_idle_timeout: Optional[int]
+    use_fp16: Optional[bool]
 
     def __new__(cls) -> "AppConfig":
         if cls._instance is None:
@@ -28,6 +29,7 @@ class AppConfig:
         self.fastapi_host = os.getenv("FASTAPI_HOST", "127.0.0.1")
         self.model_idle_timeout = int(os.getenv("MODEL_IDLE_TIMEOUT", "60"))
         self.embedding_model_name = os.getenv("EMBEDDING_MODEL_NAME", "BAAI/bge-m3")
+        self.use_fp16 = os.getenv("USE_FP16", "false").lower() == "true"
 
         try:
             self.fastapi_port = int(os.getenv("FASTAPI_PORT", "8000"))
@@ -48,7 +50,8 @@ class AppConfig:
             f"FASTAPI_HOST: {self.fastapi_host}\n"
             f"FASTAPI_PORT: {self.fastapi_port}\n"
             f"EMBEDDING_MODEL_NAME: {self.embedding_model_name}\n"
-            f"MODEL_IDLE_TIMEOUT: {self.model_idle_timeout}"
+            f"MODEL_IDLE_TIMEOUT: {self.model_idle_timeout}\n"
+            f"USE_FP16: {self.use_fp16}"
         )
         logger.info(config_message)
         logger.info("Configuration initialized successfully.")
