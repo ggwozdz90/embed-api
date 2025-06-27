@@ -3,13 +3,11 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 from fastapi import FastAPI
+from fastapi.responses import ORJSONResponse
 from fastapi.testclient import TestClient
 
 from api.dtos.create_embeddings_dto import CreateEmbeddingsDto
-from api.dtos.create_embeddings_result_dto import (
-    CreateEmbeddingsResultDto,
-    TextEmbedding,
-)
+from api.dtos.create_embeddings_result_dto import TextEmbedding
 from api.routers.embedding_router import EmbeddingRouter
 from application.usecases.create_embeddings_usecase import CreateEmbeddingsUseCase
 from data.workers.bge_m3_embedding_worker import EmbeddingResult
@@ -86,12 +84,16 @@ async def test_create_embeddings_success(
     result = await embedding_router.create_embeddings(mock_create_embeddings_usecase, create_embeddings_dto)
 
     # Then
-    assert isinstance(result, CreateEmbeddingsResultDto)
-    assert len(result.embeddings) == 2
-    assert result.embeddings[0].text == "Hello world"
-    assert result.embeddings[1].text == "Test text"
-    assert result.embeddings[0].dense == [0.1, 0.2, 0.3]
-    assert result.embeddings[1].dense == [0.4, 0.5, 0.6]
+    assert isinstance(result, ORJSONResponse)
+    content = bytes(result.body).decode("utf-8")
+    import json
+
+    data = json.loads(content)
+    assert len(data["embeddings"]) == 2
+    assert data["embeddings"][0]["text"] == "Hello world"
+    assert data["embeddings"][1]["text"] == "Test text"
+    assert data["embeddings"][0]["dense"] == [0.1, 0.2, 0.3]
+    assert data["embeddings"][1]["dense"] == [0.4, 0.5, 0.6]
 
     mock_create_embeddings_usecase.execute.assert_called_once_with(["Hello world", "Test text"], True, False, False)
 
@@ -124,11 +126,15 @@ async def test_create_embeddings_with_all_embedding_types(
     result = await embedding_router.create_embeddings(mock_create_embeddings_usecase, create_embeddings_dto)
 
     # Then
-    assert isinstance(result, CreateEmbeddingsResultDto)
-    assert len(result.embeddings) == 1
-    assert result.embeddings[0].text == "Hello world"
-    assert result.embeddings[0].dense == [0.1, 0.2, 0.3]
-    assert result.embeddings[0].colbert == [[0.1, 0.2], [0.3, 0.4]]
+    assert isinstance(result, ORJSONResponse)
+    content = bytes(result.body).decode("utf-8")
+    import json
+
+    data = json.loads(content)
+    assert len(data["embeddings"]) == 1
+    assert data["embeddings"][0]["text"] == "Hello world"
+    assert data["embeddings"][0]["dense"] == [0.1, 0.2, 0.3]
+    assert data["embeddings"][0]["colbert"] == [[0.1, 0.2], [0.3, 0.4]]
 
     mock_create_embeddings_usecase.execute.assert_called_once_with(["Hello world"], True, True, True)
 
@@ -153,8 +159,12 @@ async def test_create_embeddings_empty_texts(
     result = await embedding_router.create_embeddings(mock_create_embeddings_usecase, create_embeddings_dto)
 
     # Then
-    assert isinstance(result, CreateEmbeddingsResultDto)
-    assert len(result.embeddings) == 0
+    assert isinstance(result, ORJSONResponse)
+    content = bytes(result.body).decode("utf-8")
+    import json
+
+    data = json.loads(content)
+    assert len(data["embeddings"]) == 0
 
     mock_create_embeddings_usecase.execute.assert_called_once_with([], True, False, False)
 
@@ -187,10 +197,14 @@ async def test_create_embeddings_single_text(
     result = await embedding_router.create_embeddings(mock_create_embeddings_usecase, create_embeddings_dto)
 
     # Then
-    assert isinstance(result, CreateEmbeddingsResultDto)
-    assert len(result.embeddings) == 1
-    assert result.embeddings[0].text == "Single text"
-    assert result.embeddings[0].dense == [0.7, 0.8, 0.9]
+    assert isinstance(result, ORJSONResponse)
+    content = bytes(result.body).decode("utf-8")
+    import json
+
+    data = json.loads(content)
+    assert len(data["embeddings"]) == 1
+    assert data["embeddings"][0]["text"] == "Single text"
+    assert data["embeddings"][0]["dense"] == [0.7, 0.8, 0.9]
 
     mock_create_embeddings_usecase.execute.assert_called_once_with(["Single text"], True, False, False)
 
@@ -232,8 +246,12 @@ async def test_create_embeddings_with_defaults(
     result = await embedding_router.create_embeddings(mock_create_embeddings_usecase, create_embeddings_dto)
 
     # Then
-    assert isinstance(result, CreateEmbeddingsResultDto)
-    assert len(result.embeddings) == 2
+    assert isinstance(result, ORJSONResponse)
+    content = bytes(result.body).decode("utf-8")
+    import json
+
+    data = json.loads(content)
+    assert len(data["embeddings"]) == 2
 
     mock_create_embeddings_usecase.execute.assert_called_once_with(["Hello world"], True, False, False)
 

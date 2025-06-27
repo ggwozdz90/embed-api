@@ -10,16 +10,6 @@ from data.workers.base_worker import BaseWorker
 
 
 class MockBaseWorker(BaseWorker[str, str, dict, None]):  # type: ignore
-    def _run_process(
-        self,
-        config: str,
-        pipe: multiprocessing.connection.Connection,
-        stop_event: multiprocessing.synchronize.Event,
-        is_processing: multiprocessing.Value,  # type: ignore
-        processing_lock: multiprocessing.synchronize.Lock,
-    ) -> None:
-        pass
-
     def initialize_shared_object(
         self,
         config: str,
@@ -133,3 +123,123 @@ def test_is_processing_returns_correct_status(base_worker: MockBaseWorker) -> No
 
     # Then
     assert not processing_status
+
+
+def test_start_when_process_already_alive(base_worker: MockBaseWorker) -> None:
+    # Given
+    with patch("multiprocessing.Process") as MockProcess:
+        mock_process = Mock()
+        mock_process.is_alive.return_value = True
+        MockProcess.return_value = mock_process
+        base_worker._process = mock_process
+
+        # When
+        base_worker.start()
+
+        # Then
+        MockProcess.assert_not_called()
+
+
+def test_stop_when_no_process(base_worker: MockBaseWorker) -> None:
+    # Given
+    base_worker._process = None
+
+    # When
+    base_worker.stop()
+
+    # Then
+    assert base_worker._process is None
+
+
+def test_stop_when_process_not_alive(base_worker: MockBaseWorker) -> None:
+    # Given
+    with patch("multiprocessing.Process") as MockProcess:
+        mock_process = Mock()
+        mock_process.is_alive.return_value = False
+        MockProcess.return_value = mock_process
+        base_worker._process = mock_process
+
+        # When
+        base_worker.stop()
+
+        # Then
+        mock_process.join.assert_not_called()
+        mock_process.terminate.assert_not_called()
+
+
+def test_is_alive_when_no_process(base_worker: MockBaseWorker) -> None:
+    # Given
+    base_worker._process = None
+
+    # When
+    result = base_worker.is_alive()
+
+    # Then
+    assert not result
+
+
+def test_run_process_handles_commands(base_worker: MockBaseWorker) -> None:
+    # Given
+    mock_pipe = Mock()
+    mock_stop_event = Mock()
+    mock_stop_event.is_set.side_effect = [False, True]
+    mock_pipe.poll.return_value = True
+    mock_pipe.recv.return_value = ("test_command", "test_args")
+
+    config = Mock()
+    config.log_level = "INFO"
+    is_processing = multiprocessing.Value("b", False)
+    processing_lock = multiprocessing.Lock()
+
+    with (
+        patch.object(base_worker, "initialize_shared_object", return_value=None) as mock_init,
+        patch.object(base_worker, "handle_command") as mock_handle,
+        patch.object(base_worker, "get_worker_name", return_value="TestWorker"),
+        patch.object(base_worker._logger, "set_level"),
+        patch.object(base_worker._logger, "info"),
+        patch.object(base_worker._logger, "debug"),
+    ):
+        # When
+        base_worker._run_process(config, mock_pipe, mock_stop_event, is_processing, processing_lock)
+
+    # Then
+    mock_init.assert_called_once_with(config)
+    mock_handle.assert_called_once_with(
+        "test_command",
+        "test_args",
+        None,
+        config,
+        mock_pipe,
+        is_processing,
+        processing_lock,
+    )
+    mock_pipe.close.assert_called_once()
+
+
+def test_run_process_handles_no_commands(base_worker: MockBaseWorker) -> None:
+    # Given
+    mock_pipe = Mock()
+    mock_stop_event = Mock()
+    mock_stop_event.is_set.side_effect = [False, True]
+    mock_pipe.poll.return_value = False
+
+    config = Mock()
+    config.log_level = "INFO"
+    is_processing = multiprocessing.Value("b", False)
+    processing_lock = multiprocessing.Lock()
+
+    with (
+        patch.object(base_worker, "initialize_shared_object", return_value=None) as mock_init,
+        patch.object(base_worker, "handle_command") as mock_handle,
+        patch.object(base_worker, "get_worker_name", return_value="TestWorker"),
+        patch.object(base_worker._logger, "set_level"),
+        patch.object(base_worker._logger, "info"),
+        patch.object(base_worker._logger, "debug"),
+    ):
+        # When
+        base_worker._run_process(config, mock_pipe, mock_stop_event, is_processing, processing_lock)
+
+    # Then
+    mock_init.assert_called_once_with(config)
+    mock_handle.assert_not_called()
+    mock_pipe.close.assert_called_once()

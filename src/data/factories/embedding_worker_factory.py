@@ -29,6 +29,7 @@ class EmbeddingWorkerFactory:
                     device=self.config.device,
                     model_name=self.config.embedding_model_name,
                     log_level=self.config.log_level,
+                    use_fp16=self.config.use_fp16,
                 ),
                 logger=self.logger,
             )

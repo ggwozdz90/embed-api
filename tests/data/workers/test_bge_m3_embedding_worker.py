@@ -20,6 +20,7 @@ def mock_config() -> BgeM3EmbeddingConfig:
         device="cpu",
         model_name="BAAI/bge-m3",
         log_level="INFO",
+        use_fp16=False,
     )
 
 
@@ -118,6 +119,7 @@ def test_initialize_shared_object(mock_config: BgeM3EmbeddingConfig, mock_logger
         mock_model_init.assert_called_once_with(
             mock_config.model_name,
             device=mock_config.device,
+            use_fp16=mock_config.use_fp16,
         )
         assert model is not None
 
@@ -133,8 +135,8 @@ def test_handle_command_create_embeddings_dense_and_sparse(
     mock_model = MagicMock()
     mock_embeddings = {
         "dense_vecs": [
-            MagicMock(tolist=lambda: [0.1, 0.2, 0.3]),
-            MagicMock(tolist=lambda: [0.4, 0.5, 0.6]),
+            [0.1, 0.2, 0.3],
+            [0.4, 0.5, 0.6],
         ],
         "lexical_weights": [
             {1: 0.5, 2: 0.6, 3: 0.7},
@@ -178,13 +180,15 @@ def test_handle_command_create_embeddings_dense_and_sparse(
 
     first_embedding = sent_result.embeddings[0]
     assert first_embedding["text"] == "Hello world"
-    assert first_embedding["dense"] == [0.1, 0.2, 0.3]
-    assert first_embedding["sparse"] == {"indices": [1, 2, 3], "values": [0.5, 0.6, 0.7]}
+    assert list(first_embedding["dense"]) == [0.1, 0.2, 0.3]
+    assert first_embedding["sparse"]["indices"] == [1, 2, 3]
+    assert list(first_embedding["sparse"]["values"]) == [0.5, 0.6, 0.7]
 
     second_embedding = sent_result.embeddings[1]
     assert second_embedding["text"] == "This is a test"
-    assert second_embedding["dense"] == [0.4, 0.5, 0.6]
-    assert second_embedding["sparse"] == {"indices": [4, 5, 6], "values": [0.8, 0.9, 1.0]}
+    assert list(second_embedding["dense"]) == [0.4, 0.5, 0.6]
+    assert second_embedding["sparse"]["indices"] == [4, 5, 6]
+    assert list(second_embedding["sparse"]["values"]) == [0.8, 0.9, 1.0]
 
 
 def test_handle_command_create_embeddings_with_colbert(
@@ -199,10 +203,10 @@ def test_handle_command_create_embeddings_with_colbert(
 
     mock_embeddings = {
         "dense_vecs": [
-            MagicMock(tolist=lambda: [0.1, 0.2, 0.3]),
+            [0.1, 0.2, 0.3],
         ],
         "colbert_vecs": [
-            MagicMock(tolist=lambda: [[0.1, 0.2], [0.3, 0.4]]),
+            [[0.1, 0.2], [0.3, 0.4]],
         ],
     }
     mock_model.encode.return_value = mock_embeddings
@@ -242,8 +246,8 @@ def test_handle_command_create_embeddings_with_colbert(
 
     embedding = sent_result.embeddings[0]
     assert embedding["text"] == "Hello world"
-    assert embedding["dense"] == [0.1, 0.2, 0.3]
-    assert embedding["colbert"] == [[0.1, 0.2], [0.3, 0.4]]
+    assert list(embedding["dense"]) == [0.1, 0.2, 0.3]
+    assert embedding["colbert"].tolist() == [[0.1, 0.2], [0.3, 0.4]]
     assert "sparse" not in embedding
 
 
@@ -258,7 +262,7 @@ def test_handle_command_create_embeddings_only_dense(
     mock_model = MagicMock()
     mock_embeddings = {
         "dense_vecs": [
-            MagicMock(tolist=lambda: [0.1, 0.2, 0.3]),
+            [0.1, 0.2, 0.3],
         ],
     }
     mock_model.encode.return_value = mock_embeddings
@@ -289,7 +293,7 @@ def test_handle_command_create_embeddings_only_dense(
 
     embedding = sent_result.embeddings[0]
     assert embedding["text"] == "Hello world"
-    assert embedding["dense"] == [0.1, 0.2, 0.3]
+    assert list(embedding["dense"]) == [0.1, 0.2, 0.3]
     assert "sparse" not in embedding
     assert "colbert" not in embedding
 
@@ -411,9 +415,11 @@ def test_bge_m3_embedding_config_dataclass() -> None:
         device="cuda",
         model_name="BAAI/bge-m3",
         log_level="DEBUG",
+        use_fp16=True,
     )
 
     # Then
     assert config.device == "cuda"
     assert config.model_name == "BAAI/bge-m3"
     assert config.log_level == "DEBUG"
+    assert config.use_fp16 is True

@@ -10,6 +10,7 @@ dependencies = [
     "fastapi[all]>=0.115.6",
     "FlagEmbedding>=1.2.9",
     "peft>=0.15.2",
+    "orjson>=3.10.18",
 ]
 
 [project.urls]

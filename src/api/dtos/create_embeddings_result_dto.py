@@ -1,18 +1,18 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel
 
 
 class SparseEmbedding(BaseModel):
     indices: List[int]
-    values: List[float]
+    values: List[Any]
 
 
 class TextEmbedding(BaseModel):
     text: str
-    dense: Optional[List[float]] = None
+    dense: Optional[List[Any]] = None
     sparse: Optional[SparseEmbedding] = None
-    colbert: Optional[List[List[float]]] = None
+    colbert: Optional[List[List[Any]]] = None
 
 
 class CreateEmbeddingsResultDto(BaseModel):

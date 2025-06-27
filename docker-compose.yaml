@@ -12,6 +12,7 @@ services:
       - FASTAPI_PORT=8000
       - MODEL_IDLE_TIMEOUT=60
       - EMBEDDING_MODEL_NAME=BAAI/bge-m3
+      - USE_FP16=false
     ports:
       - "8007:8000"
     deploy:

@@ -26,6 +26,7 @@ def test_create_worker_bge_m3(mock_config: AppConfig, mock_logger: Logger) -> No
     mock_config.embedding_model_name = "BAAI/bge-m3"
     mock_config.device = "cpu"
     mock_config.log_level = "INFO"
+    mock_config.use_fp16 = False
 
     factory = EmbeddingWorkerFactory(config=mock_config, logger=mock_logger)
 
@@ -37,6 +38,7 @@ def test_create_worker_bge_m3(mock_config: AppConfig, mock_logger: Logger) -> No
     assert worker._config.device == "cpu"
     assert worker._config.model_name == "BAAI/bge-m3"
     assert worker._config.log_level == "INFO"
+    assert worker._config.use_fp16 is False
 
 
 def test_create_worker_bge_m3_cuda(mock_config: AppConfig, mock_logger: Logger) -> None:
@@ -44,6 +46,7 @@ def test_create_worker_bge_m3_cuda(mock_config: AppConfig, mock_logger: Logger) 
     mock_config.embedding_model_name = "BAAI/bge-m3"
     mock_config.device = "cuda"
     mock_config.log_level = "DEBUG"
+    mock_config.use_fp16 = True
 
     factory = EmbeddingWorkerFactory(config=mock_config, logger=mock_logger)
 
@@ -55,6 +58,7 @@ def test_create_worker_bge_m3_cuda(mock_config: AppConfig, mock_logger: Logger) 
     assert worker._config.device == "cuda"
     assert worker._config.model_name == "BAAI/bge-m3"
     assert worker._config.log_level == "DEBUG"
+    assert worker._config.use_fp16 is True
 
 
 def test_create_worker_unsupported_model(mock_config: AppConfig, mock_logger: Logger) -> None:
